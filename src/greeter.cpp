@@ -1,0 +1,195 @@
+#include "greeter.hpp"
+#include "godot_cpp/classes/global_constants.hpp"
+#include "godot_cpp/classes/os.hpp"
+#include "godot_cpp/core/class_db.hpp"
+#include "godot_cpp/variant/packed_string_array.hpp"
+#include "godot_cpp/variant/utility_functions.hpp"
+#include "greetd_response.hpp"
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <sys/un.h>
+#include <unistd.h>
+#include <cstdint>
+#include <cstring>
+#include <string>
+
+using namespace godot;
+
+void Greeter::_bind_methods() {
+	ClassDB::bind_method(D_METHOD("create_session", "username"), &Greeter::create_session);
+}
+
+Ref<GreetdResponse> Greeter::create_session(const String username) {
+	const char* path = socket_path().utf8().get_data();
+
+	int fd = socket(AF_UNIX, SOCK_STREAM, 0);
+	if (fd < 0) {
+		UtilityFunctions::printerr("Failed to create socket");
+		return memnew(GreetdError("internal_error", "Failed to create socket"));
+	}
+
+	sockaddr_un address{};
+	address.sun_family = AF_UNIX;
+	std::strncpy(address.sun_path, path, sizeof(address.sun_path) - 1);
+
+	int err = ::connect(fd, (struct sockaddr*)&address, sizeof(address));
+	if (err < 0) {
+		close(fd);
+		String err_message = "Failed to connect to socket (" + String::utf8(strerror(errno)) + ")";
+		UtilityFunctions::printerr(err_message);
+		return memnew(GreetdError("internal_error", err_message));
+	}
+
+	json request = {{"type", "create_session"}, {"username", username.utf8().get_data()}};
+	Ref<GreetdResponse> response = send_greetd_request(fd, request);
+	close(fd);
+	return response;
+}
+
+Ref<GreetdResponse> Greeter::send_greetd_request(int fd, json request) {
+	Error err = write_json(fd, request);
+	if (err != Error::OK) {
+		return memnew(GreetdError("internal_error", "Failed to write JSON request"));
+	}
+
+	json response;
+	err = read_json(fd, response);
+
+	if (err != Error::OK) {
+		return memnew(GreetdError("internal_error", "Failed to read JSON response"));
+	}
+
+	if (!response.contains("type") || !response["type"].is_string()) {
+		String err_message = "Missing or invalid 'type' field in response";
+		UtilityFunctions::printerr(err_message);
+		return memnew(GreetdError("internal_error", err_message));
+	}
+
+	Ref<GreetdResponse> result;
+	std::string type = response["type"];
+	if (type == "error") {
+		String err_type = response["error_type"].get<std::string>().c_str();
+		String err_message = response["description"].get<std::string>().c_str();
+		UtilityFunctions::printerr(err_message);
+		result = Ref<GreetdResponse>(memnew(GreetdError(err_type, err_message)));
+	} else if (type == "success") {
+		result = Ref<GreetdResponse>(memnew(GreetdSuccess()));
+	} else if (type == "auth_message") {
+		String message_type = response["auth_message_type"].get<std::string>().c_str();
+		String auth_message = response["auth_message"].get<std::string>().c_str();
+		result = Ref<GreetdResponse>(memnew(GreetdAuthMessage(message_type, auth_message)));
+	}
+
+	return result;
+}
+
+// TODO: Update from Error to GreetdResponse
+Error Greeter::start_session() {
+	std::string cmd = get_cmd().utf8().get_data();
+	UtilityFunctions::print("cmd: ", cmd.data());
+
+	json request = {{"type", "start_session"}, {"cmd", {cmd}}};
+
+	return Error::OK;
+}
+
+Error Greeter::write_json(int fd, json request) {
+	std::string json_str = request.dump();
+	// std::string json_str = "{\"type\": \"create_session\", \"username\": \"" + std::string(username_cstr) + "\"}";
+	const char* c_str = json_str.c_str();
+	uint32_t size = json_str.size();
+
+	ssize_t n = write_all(fd, &size, 4);
+	if (n < 0) {
+		UtilityFunctions::printerr("Failed to write size to socket");
+		return Error::ERR_FILE_CANT_WRITE;
+	}
+
+	n = write_all(fd, c_str, size);
+	if (n < 0) {
+		UtilityFunctions::printerr("Failed to write payload to socket");
+		return Error::ERR_FILE_CANT_WRITE;
+	}
+	return Error::OK;
+}
+
+Error Greeter::read_json(int fd, json& response) {
+	uint32_t response_size;
+	ssize_t n = read_all(fd, &response_size, 4);
+	if (n < 0) {
+		UtilityFunctions::printerr("Failed to read response size");
+		return godot::ERR_FILE_CANT_READ;
+	}
+
+	std::vector<char> buffer(response_size + 1);
+	n = read_all(fd, buffer.data(), response_size);
+	if (n < 0) {
+		UtilityFunctions::printerr("Failed to read payload");
+		return godot::ERR_FILE_CANT_READ;
+	}
+	buffer[response_size] = '\0';
+	UtilityFunctions::print("Received: ", buffer.data());
+
+	response = json::parse(buffer.data(), nullptr, false);
+	if (response.is_discarded()) {
+		UtilityFunctions::printerr("Failed to parse JSON response", buffer.data());
+		return Error::ERR_PARSE_ERROR;
+	}
+
+	return Error::OK;
+}
+
+
+ssize_t Greeter::write_all(int fd, const void* data, size_t len) {
+	const uint8_t* ptr = static_cast<const uint8_t*>(data);
+	ssize_t total = 0;
+
+	while (total < len) {
+		ssize_t n = write(fd, ptr + total, len - total);
+		if (n <= 0) {
+			return -1;
+		}
+		total += n;
+	}
+	return total;
+}
+
+ssize_t Greeter::read_all(int fd, void* data, size_t len) {
+	uint8_t* ptr = static_cast<uint8_t*>(data);
+	ssize_t total = 0;
+
+	while (total < len) {
+		ssize_t n = read(fd, ptr + total, len - total);
+		if (n <= 0) {
+			return -1;
+		}
+		total += n;
+	}
+	return total;
+}
+
+// If more command line arguments are required, it would be better make a hash from the user args
+String Greeter::get_cmd() {
+	OS* os = OS::get_singleton();
+	PackedStringArray args = os->get_cmdline_user_args();
+
+	for (int i = 0; i < args.size(); i++) {
+		String arg = args[i];
+
+		if (arg.contains("=")) {
+			PackedStringArray key_value = arg.split("=");
+			String key = key_value[0].trim_prefix("--");
+
+			if (key == "cmd") {
+				return key_value[1];
+			}
+		}
+	}
+	// Run hyprland by default after login
+	return String("hyprland");
+}
+
+String Greeter::socket_path() {
+	return OS::get_singleton()->get_environment("GREETD_SOCK");
+	// return "/tmp/example_socket";
+}

@@ -15,11 +15,11 @@ void initialize_gdextension_types(ModuleInitializationLevel p_level)
 	if (p_level != MODULE_INITIALIZATION_LEVEL_SCENE) {
 		return;
 	}
-	GDREGISTER_CLASS(Greeter);
-	GDREGISTER_CLASS(GreetdResponse);
-	GDREGISTER_CLASS(GreetdSuccess);
-	GDREGISTER_CLASS(GreetdError);
-	GDREGISTER_CLASS(GreetdAuthMessage);
+	GDREGISTER_CLASS(Greeter)
+	GDREGISTER_CLASS(GreetdResponse)
+	GDREGISTER_CLASS(GreetdSuccess)
+	GDREGISTER_CLASS(GreetdError)
+	GDREGISTER_CLASS(GreetdAuthMessage)
 }
 
 void uninitialize_gdextension_types(ModuleInitializationLevel p_level) {

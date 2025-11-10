@@ -63,3 +63,7 @@ CMakeUserPresets.json
 
 # clangd
 .cache/clangd/index
+
+# Export
+demo/*.x86_64
+demo/*.sh

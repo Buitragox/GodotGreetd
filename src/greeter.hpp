@@ -20,8 +20,9 @@ public:
 	Greeter() = default;
 	~Greeter() override = default;
 
-	godot::Ref<GreetdResponse> create_session(const godot::String username);
-	godot::Error start_session();
+	godot::Ref<GreetdResponse> create_session(const godot::String& username);
+	godot::Ref<GreetdResponse> answer_auth_message(const godot::String& answer);
+	godot::Ref<GreetdResponse> start_session();
 
 private:
 	godot::Ref<GreetdResponse> send_greetd_request(int fd, json request);
@@ -30,5 +31,5 @@ private:
 	ssize_t write_all(int fd, const void* data, size_t len);
 	ssize_t read_all(int fd, void* data, size_t len);
 	godot::String get_cmd();
-	godot::String socket_path();
+	int connect_to_socket();
 };

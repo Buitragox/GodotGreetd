@@ -13,12 +13,24 @@ config_version=5
 config/name="godot cpp template"
 run/main_scene="uid://dh0oj81pufivs"
 config/features=PackedStringArray("4.5", "Forward Plus")
+boot_splash/show_image=false
 config/icon="res://icon.svg"
 
 [display]
 
+window/size/viewport_width=1920
+window/size/viewport_height=1080
+window/size/mode=3
+window/size/resizable=false
+window/size/minimize_disabled=true
+window/stretch/mode="canvas_items"
 display_server/driver.linuxbsd="wayland"
+window/vsync/vsync_mode=0
 
 [editor]
 
 run/main_run_args="-- --cmd=hyprland"
+
+[rendering]
+
+shader_compiler/shader_cache/enabled=false

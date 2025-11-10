@@ -17,30 +17,44 @@ using namespace godot;
 
 void Greeter::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("create_session", "username"), &Greeter::create_session);
+	ClassDB::bind_method(D_METHOD("answer_auth_message", "answer"), &Greeter::answer_auth_message);
 }
 
-Ref<GreetdResponse> Greeter::create_session(const String username) {
-	const char* path = socket_path().utf8().get_data();
-
-	int fd = socket(AF_UNIX, SOCK_STREAM, 0);
+Ref<GreetdResponse> Greeter::create_session(const String& username) {
+	int fd = connect_to_socket();
 	if (fd < 0) {
-		UtilityFunctions::printerr("Failed to create socket");
-		return memnew(GreetdError("internal_error", "Failed to create socket"));
-	}
-
-	sockaddr_un address{};
-	address.sun_family = AF_UNIX;
-	std::strncpy(address.sun_path, path, sizeof(address.sun_path) - 1);
-
-	int err = ::connect(fd, (struct sockaddr*)&address, sizeof(address));
-	if (err < 0) {
-		close(fd);
-		String err_message = "Failed to connect to socket (" + String::utf8(strerror(errno)) + ")";
-		UtilityFunctions::printerr(err_message);
-		return memnew(GreetdError("internal_error", err_message));
+		return memnew(GreetdError("internal_error", "Failed to connect socket"));
 	}
 
 	json request = {{"type", "create_session"}, {"username", username.utf8().get_data()}};
+	Ref<GreetdResponse> response = send_greetd_request(fd, request);
+	close(fd);
+	return response;
+}
+
+Ref<GreetdResponse> Greeter::answer_auth_message(const String& answer) {
+	int fd = connect_to_socket();
+	if (fd < 0) {
+		return memnew(GreetdError("internal_error", "Failed to connect socket"));
+	}
+
+	json request = {{"type", "post_auth_message_response"}, {"response", answer.utf8().get_data()}};
+	Ref<GreetdResponse> response = send_greetd_request(fd, request);
+	close(fd);
+	return response;
+}
+
+// TODO: Update from Error to GreetdResponse
+Ref<GreetdResponse> Greeter::start_session() {
+	int fd = connect_to_socket();
+	if (fd < 0) {
+		return memnew(GreetdError("internal_error", "Failed to connect socket"));
+	}
+
+	std::string cmd = get_cmd().utf8().get_data();
+	UtilityFunctions::print("cmd: ", cmd.data());
+
+	json request = {{"type", "start_session"}, {"cmd", {cmd}}};
 	Ref<GreetdResponse> response = send_greetd_request(fd, request);
 	close(fd);
 	return response;
@@ -67,13 +81,13 @@ Ref<GreetdResponse> Greeter::send_greetd_request(int fd, json request) {
 
 	Ref<GreetdResponse> result;
 	std::string type = response["type"];
-	if (type == "error") {
+	if (type == "success") {
+		result = Ref<GreetdResponse>(memnew(GreetdSuccess()));
+	} else if (type == "error") {
 		String err_type = response["error_type"].get<std::string>().c_str();
 		String err_message = response["description"].get<std::string>().c_str();
 		UtilityFunctions::printerr(err_message);
 		result = Ref<GreetdResponse>(memnew(GreetdError(err_type, err_message)));
-	} else if (type == "success") {
-		result = Ref<GreetdResponse>(memnew(GreetdSuccess()));
 	} else if (type == "auth_message") {
 		String message_type = response["auth_message_type"].get<std::string>().c_str();
 		String auth_message = response["auth_message"].get<std::string>().c_str();
@@ -83,19 +97,8 @@ Ref<GreetdResponse> Greeter::send_greetd_request(int fd, json request) {
 	return result;
 }
 
-// TODO: Update from Error to GreetdResponse
-Error Greeter::start_session() {
-	std::string cmd = get_cmd().utf8().get_data();
-	UtilityFunctions::print("cmd: ", cmd.data());
-
-	json request = {{"type", "start_session"}, {"cmd", {cmd}}};
-
-	return Error::OK;
-}
-
 Error Greeter::write_json(int fd, json request) {
 	std::string json_str = request.dump();
-	// std::string json_str = "{\"type\": \"create_session\", \"username\": \"" + std::string(username_cstr) + "\"}";
 	const char* c_str = json_str.c_str();
 	uint32_t size = json_str.size();
 
@@ -127,6 +130,7 @@ Error Greeter::read_json(int fd, json& response) {
 		UtilityFunctions::printerr("Failed to read payload");
 		return godot::ERR_FILE_CANT_READ;
 	}
+
 	buffer[response_size] = '\0';
 	UtilityFunctions::print("Received: ", buffer.data());
 
@@ -189,7 +193,31 @@ String Greeter::get_cmd() {
 	return String("hyprland");
 }
 
-String Greeter::socket_path() {
-	return OS::get_singleton()->get_environment("GREETD_SOCK");
-	// return "/tmp/example_socket";
+int Greeter::connect_to_socket() {
+	String env_sock = OS::get_singleton()->get_environment("GREETD_SOCK");
+	// HACK for debugging
+	if (env_sock.is_empty()) {
+		env_sock = "/tmp/example_socket";
+	}
+	const char* path = env_sock.utf8().get_data();
+
+	int fd = socket(AF_UNIX, SOCK_STREAM, 0);
+	if (fd < 0) {
+		UtilityFunctions::printerr("Failed to create socket");
+		return -1;
+	}
+
+	sockaddr_un address{};
+	address.sun_family = AF_UNIX;
+	std::strncpy(address.sun_path, path, sizeof(address.sun_path) - 1);
+
+	int err = ::connect(fd, (struct sockaddr*)&address, sizeof(address));
+	if (err < 0) {
+		close(fd);
+		String err_message = "Failed to connect to socket (" + String::utf8(strerror(errno)) + ")";
+		UtilityFunctions::printerr(err_message);
+		return -1;
+	}
+
+	return fd;
 }

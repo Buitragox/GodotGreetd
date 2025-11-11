@@ -18,6 +18,7 @@ using namespace godot;
 void Greeter::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("create_session", "username"), &Greeter::create_session);
 	ClassDB::bind_method(D_METHOD("answer_auth_message", "answer"), &Greeter::answer_auth_message);
+	ClassDB::bind_method(D_METHOD("start_session"), &Greeter::start_session);
 }
 
 Ref<GreetdResponse> Greeter::create_session(const String& username) {

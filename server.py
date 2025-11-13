@@ -21,7 +21,7 @@ def receive_and_send(conn: socket):
         received_json = json.loads(msg)
         response = create_response(received_json)
     except Exception as e:
-        response = create_error("error", str(e))
+        response = create_error_response("error", str(e))
 
     response_bytes = json.dumps(response).encode("utf-8")
     print("Sent:", response)
@@ -33,28 +33,30 @@ def create_response(request: dict[str, str]) -> dict[str, str]:
     response = None
     match request:
         case {"type": "create_session", "username": "error"}:
-            response = create_error("error", "random error")
+            response = create_error_response("error", "random error")
         case {"type": "create_session", "username": "success"}:
             response = {"type": "success"}
         case {"type": "create_session"}:
             response = create_auth_response("secret", "mocking:")
         case {"type": "post_auth_message_response", "response": "bad_password"}:
-            response = create_error("auth_error", "Incorrect password")
+            response = create_error_response("auth_error", "Incorrect password")
         case {"type": "post_auth_message_response"}:
-            response = create_success()
+            response = create_success_response()
         case {"type": "start_session"}:
-            response = create_success()
+            response = create_success_response()
+        case {"type": "cancel_session"}:
+            response = create_success_response()
         case _:
-            response = create_error("error", "Invalid request")
+            response = create_error_response("error", "Invalid request")
 
     return response
 
 
-def create_success():
+def create_success_response():
     return {"type": "success"}
 
 
-def create_error(error_type: str, description: str):
+def create_error_response(error_type: str, description: str):
     return {"type": "error", "error_type": error_type, "description": description}
 
 

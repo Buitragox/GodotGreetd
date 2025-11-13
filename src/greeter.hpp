@@ -10,19 +10,20 @@
 
 using json = nlohmann::json;
 
-class Greeter : public godot::RefCounted {
-	GDCLASS(Greeter, godot::RefCounted)
+class GreetdGreeter : public godot::RefCounted {
+	GDCLASS(GreetdGreeter, godot::RefCounted)
 
 protected:
 	static void _bind_methods();
 
 public:
-	Greeter() = default;
-	~Greeter() override = default;
+	GreetdGreeter() = default;
+	~GreetdGreeter() override = default;
 
 	godot::Ref<GreetdResponse> create_session(const godot::String& username);
 	godot::Ref<GreetdResponse> answer_auth_message(const godot::String& answer);
 	godot::Ref<GreetdResponse> start_session();
+	godot::Ref<GreetdResponse> cancel_session();
 
 private:
 	godot::Ref<GreetdResponse> send_greetd_request(int fd, json request);

@@ -1,5 +1,5 @@
-# Greetd Godot Extension
-TODO
+# GodotGreetd
+GDExtension for the Greetd IPC Protocol
 
 ## Development
 
@@ -42,3 +42,6 @@ After a workflow run is complete, you can find the file `godot-cpp-template.zip`
 ## TODO
 - [ ] Check if it compiles with CMake
 	- How can you generate a compilation database file with CMake?
+- [ ] Should I implement an easier way to approach the protocol?
+	- For example, handle the state of the login process or provide a simple `login` function that receives username, password, and does everything?
+	- maybe a `next_request` function?

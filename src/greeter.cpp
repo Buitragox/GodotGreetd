@@ -15,13 +15,14 @@
 
 using namespace godot;
 
-void Greeter::_bind_methods() {
-	ClassDB::bind_method(D_METHOD("create_session", "username"), &Greeter::create_session);
-	ClassDB::bind_method(D_METHOD("answer_auth_message", "answer"), &Greeter::answer_auth_message);
-	ClassDB::bind_method(D_METHOD("start_session"), &Greeter::start_session);
+void GreetdGreeter::_bind_methods() {
+	ClassDB::bind_method(D_METHOD("create_session", "username"), &GreetdGreeter::create_session);
+	ClassDB::bind_method(D_METHOD("answer_auth_message", "answer"), &GreetdGreeter::answer_auth_message);
+	ClassDB::bind_method(D_METHOD("start_session"), &GreetdGreeter::start_session);
+	ClassDB::bind_method(D_METHOD("cancel_session"), &GreetdGreeter::cancel_session);
 }
 
-Ref<GreetdResponse> Greeter::create_session(const String& username) {
+Ref<GreetdResponse> GreetdGreeter::create_session(const String& username) {
 	int fd = connect_to_socket();
 	if (fd < 0) {
 		return memnew(GreetdError("internal_error", "Failed to connect socket"));
@@ -33,7 +34,7 @@ Ref<GreetdResponse> Greeter::create_session(const String& username) {
 	return response;
 }
 
-Ref<GreetdResponse> Greeter::answer_auth_message(const String& answer) {
+Ref<GreetdResponse> GreetdGreeter::answer_auth_message(const String& answer) {
 	int fd = connect_to_socket();
 	if (fd < 0) {
 		return memnew(GreetdError("internal_error", "Failed to connect socket"));
@@ -45,8 +46,16 @@ Ref<GreetdResponse> Greeter::answer_auth_message(const String& answer) {
 	return response;
 }
 
-// TODO: Update from Error to GreetdResponse
-Ref<GreetdResponse> Greeter::start_session() {
+// TODO: Need to explore how to get the available sessions in the system
+// This path `/usr/share/wayland-sessions` contains .desktop files for the sessions
+// Do we need to parse the .desktop file? Is there a parser available?
+
+// TODO: Receive cmd as an argument. Maybe as an optional argument?
+// I think I just need to create another function with a different signature?
+// Need to think about how to approach this
+// - We should support both cmd and getting the session from gdscript
+// - Would it be alright to just make cmd a required argument and make `get_cmd?
+Ref<GreetdResponse> GreetdGreeter::start_session() {
 	int fd = connect_to_socket();
 	if (fd < 0) {
 		return memnew(GreetdError("internal_error", "Failed to connect socket"));
@@ -61,7 +70,19 @@ Ref<GreetdResponse> Greeter::start_session() {
 	return response;
 }
 
-Ref<GreetdResponse> Greeter::send_greetd_request(int fd, json request) {
+Ref<GreetdResponse> GreetdGreeter::cancel_session() {
+	int fd = connect_to_socket();
+	if (fd < 0) {
+		return memnew(GreetdError("internal_error", "Failed to connect socket"));
+	}
+
+	json request = {{"type", "cancel_session"}};
+	Ref<GreetdResponse> response = send_greetd_request(fd, request);
+	close(fd);
+	return response;
+}
+
+Ref<GreetdResponse> GreetdGreeter::send_greetd_request(int fd, json request) {
 	Error err = write_json(fd, request);
 	if (err != Error::OK) {
 		return memnew(GreetdError("internal_error", "Failed to write JSON request"));
@@ -98,7 +119,7 @@ Ref<GreetdResponse> Greeter::send_greetd_request(int fd, json request) {
 	return result;
 }
 
-Error Greeter::write_json(int fd, json request) {
+Error GreetdGreeter::write_json(int fd, json request) {
 	std::string json_str = request.dump();
 	const char* c_str = json_str.c_str();
 	uint32_t size = json_str.size();
@@ -117,7 +138,7 @@ Error Greeter::write_json(int fd, json request) {
 	return Error::OK;
 }
 
-Error Greeter::read_json(int fd, json& response) {
+Error GreetdGreeter::read_json(int fd, json& response) {
 	uint32_t response_size;
 	ssize_t n = read_all(fd, &response_size, 4);
 	if (n < 0) {
@@ -145,7 +166,7 @@ Error Greeter::read_json(int fd, json& response) {
 }
 
 
-ssize_t Greeter::write_all(int fd, const void* data, size_t len) {
+ssize_t GreetdGreeter::write_all(int fd, const void* data, size_t len) {
 	const uint8_t* ptr = static_cast<const uint8_t*>(data);
 	ssize_t total = 0;
 
@@ -159,7 +180,7 @@ ssize_t Greeter::write_all(int fd, const void* data, size_t len) {
 	return total;
 }
 
-ssize_t Greeter::read_all(int fd, void* data, size_t len) {
+ssize_t GreetdGreeter::read_all(int fd, void* data, size_t len) {
 	uint8_t* ptr = static_cast<uint8_t*>(data);
 	ssize_t total = 0;
 
@@ -174,7 +195,7 @@ ssize_t Greeter::read_all(int fd, void* data, size_t len) {
 }
 
 // If more command line arguments are required, it would be better make a hash from the user args
-String Greeter::get_cmd() {
+String GreetdGreeter::get_cmd() {
 	OS* os = OS::get_singleton();
 	PackedStringArray args = os->get_cmdline_user_args();
 
@@ -190,11 +211,12 @@ String Greeter::get_cmd() {
 			}
 		}
 	}
+	// TODO: probably delete this? No need to asume defaults.
 	// Run hyprland by default after login
 	return String("hyprland");
 }
 
-int Greeter::connect_to_socket() {
+int GreetdGreeter::connect_to_socket() {
 	String env_sock = OS::get_singleton()->get_environment("GREETD_SOCK");
 	// HACK for debugging
 	if (env_sock.is_empty()) {

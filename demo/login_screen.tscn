@@ -1,29 +1,30 @@
 [gd_scene load_steps=3 format=3 uid="uid://dh0oj81pufivs"]
 
-[ext_resource type="Texture2D" uid="uid://c7gm3ibtnu2jv" path="res://assets/ALLqk82Edit.png" id="1_2jas5"]
-[ext_resource type="Script" uid="uid://dsxw847fhj4ic" path="res://log_in.gd" id="2_n51mc"]
+[ext_resource type="Texture2D" uid="uid://c7gm3ibtnu2jv" path="res://assets/ALLqk82Edit.png" id="1_3u8nt"]
+[ext_resource type="Script" uid="uid://borjdmkdqkxas" path="res://login_screen.gd" id="1_7xvqn"]
 
-[node name="Control" type="Control"]
+[node name="LoginScreen" type="Control"]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+script = ExtResource("1_7xvqn")
 metadata/_edit_lock_ = true
 
 [node name="AlLqk82Edit" type="Sprite2D" parent="."]
 position = Vector2(960, 540)
-texture = ExtResource("1_2jas5")
+texture = ExtResource("1_3u8nt")
 metadata/_edit_lock_ = true
 
 [node name="Alert" type="Label" parent="."]
 unique_name_in_owner = true
 layout_mode = 0
-offset_left = 368.0
-offset_top = 400.0
-offset_right = 528.0
-offset_bottom = 423.0
+offset_left = 320.0
+offset_top = 344.0
+offset_right = 576.0
+offset_bottom = 369.0
 
 [node name="Username" type="LineEdit" parent="."]
 unique_name_in_owner = true
@@ -45,13 +46,13 @@ placeholder_text = "password"
 secret = true
 
 [node name="LogIn" type="Button" parent="."]
+unique_name_in_owner = true
 layout_mode = 0
 offset_left = 392.0
 offset_top = 592.0
 offset_right = 504.0
 offset_bottom = 624.0
 text = "Log In"
-script = ExtResource("2_n51mc")
 
 [node name="Log" type="RichTextLabel" parent="."]
 unique_name_in_owner = true
@@ -61,3 +62,12 @@ offset_top = 40.0
 offset_right = 976.0
 offset_bottom = 456.0
 scroll_following = true
+
+[node name="SessionSelect" type="OptionButton" parent="."]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 320.0
+offset_top = 384.0
+offset_right = 576.0
+offset_bottom = 432.0
+text_overrun_behavior = 3

@@ -28,6 +28,7 @@ public:
 	godot::Ref<GreetdResponse> start_session();
 	godot::Ref<GreetdResponse> cancel_session();
 	godot::TypedArray<godot::Dictionary> get_wayland_sessions();
+	godot::TypedArray<godot::String> get_users();
 
 private:
 	godot::Ref<GreetdResponse> send_greetd_request(int fd, json request);

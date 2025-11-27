@@ -6,6 +6,7 @@
 #include "godot_cpp/core/class_db.hpp"
 #include "godot_cpp/variant/dictionary.hpp"
 #include "godot_cpp/variant/packed_string_array.hpp"
+#include "godot_cpp/variant/string.hpp"
 #include "godot_cpp/variant/typed_array.hpp"
 #include "godot_cpp/variant/utility_functions.hpp"
 #include "greetd_response.hpp"
@@ -16,6 +17,7 @@
 #include <cstdint>
 #include <cstring>
 #include <string>
+#include <pwd.h>
 
 using namespace godot;
 
@@ -24,7 +26,8 @@ void GreetdGreeter::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("answer_auth_message", "answer"), &GreetdGreeter::answer_auth_message);
 	ClassDB::bind_method(D_METHOD("start_session"), &GreetdGreeter::start_session);
 	ClassDB::bind_method(D_METHOD("cancel_session"), &GreetdGreeter::cancel_session);
-	ClassDB::bind_method(D_METHOD("get_sessions"), &GreetdGreeter::get_sessions);
+	ClassDB::bind_method(D_METHOD("get_wayland_sessions"), &GreetdGreeter::get_wayland_sessions);
+	ClassDB::bind_method(D_METHOD("get_users"), &GreetdGreeter::get_users);
 }
 
 Ref<GreetdResponse> GreetdGreeter::create_session(const String& username) {
@@ -114,6 +117,29 @@ TypedArray<Dictionary> GreetdGreeter::get_wayland_sessions() {
 	}
 
 	return sessions;
+}
+
+TypedArray<String> GreetdGreeter::get_users() {
+	TypedArray<String> users;
+	struct passwd* pw;
+
+	// NOTE: not sure if these values are always correct.
+	const int MIN_USER_ID = 1000;
+	const int MAX_USER_ID = 60000;
+
+	setpwent();
+
+	while ((pw = getpwent()) != nullptr) {
+		if (pw->pw_uid < 1000 || pw->pw_uid >= 60000) {
+			continue;
+		}
+
+		users.append(pw->pw_name);
+	}
+
+	endpwent();
+
+	return users;
 }
 
 Ref<GreetdResponse> GreetdGreeter::send_greetd_request(int fd, json request) {

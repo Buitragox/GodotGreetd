@@ -3,7 +3,10 @@
 #include "godot_cpp/classes/global_constants.hpp"
 #include "godot_cpp/classes/ref_counted.hpp"
 #include "godot_cpp/classes/wrapped.hpp"
+#include "godot_cpp/variant/array.hpp"
+#include "godot_cpp/variant/dictionary.hpp"
 #include "godot_cpp/variant/string.hpp"
+#include "godot_cpp/variant/typed_array.hpp"
 #include "greetd_response.hpp"
 #include <json.hpp>
 #include <sys/types.h>
@@ -24,6 +27,7 @@ public:
 	godot::Ref<GreetdResponse> answer_auth_message(const godot::String& answer);
 	godot::Ref<GreetdResponse> start_session();
 	godot::Ref<GreetdResponse> cancel_session();
+	godot::TypedArray<godot::Dictionary> get_wayland_sessions();
 
 private:
 	godot::Ref<GreetdResponse> send_greetd_request(int fd, json request);

@@ -1,8 +1,12 @@
 #include "greeter.hpp"
+#include "godot_cpp/classes/dir_access.hpp"
+#include "godot_cpp/classes/file_access.hpp"
 #include "godot_cpp/classes/global_constants.hpp"
 #include "godot_cpp/classes/os.hpp"
 #include "godot_cpp/core/class_db.hpp"
+#include "godot_cpp/variant/dictionary.hpp"
 #include "godot_cpp/variant/packed_string_array.hpp"
+#include "godot_cpp/variant/typed_array.hpp"
 #include "godot_cpp/variant/utility_functions.hpp"
 #include "greetd_response.hpp"
 #include <sys/socket.h>
@@ -20,6 +24,7 @@ void GreetdGreeter::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("answer_auth_message", "answer"), &GreetdGreeter::answer_auth_message);
 	ClassDB::bind_method(D_METHOD("start_session"), &GreetdGreeter::start_session);
 	ClassDB::bind_method(D_METHOD("cancel_session"), &GreetdGreeter::cancel_session);
+	ClassDB::bind_method(D_METHOD("get_sessions"), &GreetdGreeter::get_sessions);
 }
 
 Ref<GreetdResponse> GreetdGreeter::create_session(const String& username) {
@@ -45,10 +50,6 @@ Ref<GreetdResponse> GreetdGreeter::answer_auth_message(const String& answer) {
 	close(fd);
 	return response;
 }
-
-// TODO: Need to explore how to get the available sessions in the system
-// This path `/usr/share/wayland-sessions` contains .desktop files for the sessions
-// Do we need to parse the .desktop file? Is there a parser available?
 
 // TODO: Receive cmd as an argument. Maybe as an optional argument?
 // I think I just need to create another function with a different signature?
@@ -80,6 +81,39 @@ Ref<GreetdResponse> GreetdGreeter::cancel_session() {
 	Ref<GreetdResponse> response = send_greetd_request(fd, request);
 	close(fd);
 	return response;
+}
+
+TypedArray<Dictionary> GreetdGreeter::get_wayland_sessions() {
+	TypedArray<Dictionary> sessions;
+	// TODO: I don't think this a standard on every distro. Probably need to check other places
+	// or add the ability for people to set their own paths?
+	const String path = "/usr/share/wayland-sessions/";
+
+	Ref<DirAccess> dir = DirAccess::open(path);
+	if (dir.is_null()) {
+		Error err = DirAccess::get_open_error();
+		UtilityFunctions::printerr("Failed to access sessions directory (Error ", err, ")");
+		return sessions;
+	}
+
+	// NOTE: This is a very simple parsing, maybe it will be necessary to refine this later
+	for (String file_name : dir->get_files()) {
+		Dictionary session;
+		Ref<FileAccess> file = FileAccess::open(path + file_name, FileAccess::READ);
+		while (file->get_position() < file->get_length()) {
+			String line = file->get_line();
+
+			if (line.find("=") == -1) {
+				continue;
+			}
+
+			PackedStringArray key_value = line.split("=", true, 1);
+			session[key_value[0]] = key_value[1];
+		}
+		sessions.append(session);
+	}
+
+	return sessions;
 }
 
 Ref<GreetdResponse> GreetdGreeter::send_greetd_request(int fd, json request) {

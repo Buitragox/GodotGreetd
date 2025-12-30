@@ -24,7 +24,7 @@ using namespace godot;
 void GreetdGreeter::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("create_session", "username"), &GreetdGreeter::create_session);
 	ClassDB::bind_method(D_METHOD("answer_auth_message", "answer"), &GreetdGreeter::answer_auth_message);
-	ClassDB::bind_method(D_METHOD("start_session", "cmd"), &GreetdGreeter::start_session, DEFVAL(""));
+	ClassDB::bind_method(D_METHOD("start_session", "cmd"), &GreetdGreeter::start_session);
 	ClassDB::bind_method(D_METHOD("cancel_session"), &GreetdGreeter::cancel_session);
 	ClassDB::bind_method(D_METHOD("get_wayland_sessions"), &GreetdGreeter::get_wayland_sessions);
 	ClassDB::bind_method(D_METHOD("get_users"), &GreetdGreeter::get_users);
@@ -62,8 +62,7 @@ Ref<GreetdResponse> GreetdGreeter::start_session(const String& cmd) {
 		return memnew(GreetdError("internal_error", "Failed to connect socket"));
 	}
 
-	String session_cmd = cmd.is_empty() ? get_cmd() : cmd;
-	std::string cmd_str = session_cmd.utf8().get_data();
+	std::string cmd_str = cmd.utf8().get_data();
 	UtilityFunctions::print("cmd: ", cmd_str.data());
 
 	json request = {{"type", "start_session"}, {"cmd", {cmd_str}}};
@@ -250,27 +249,6 @@ ssize_t GreetdGreeter::read_all(int fd, void* data, size_t len) {
 		total += n;
 	}
 	return total;
-}
-
-// If more command line arguments are required, it would be better make a hash from the user args
-String GreetdGreeter::get_cmd() {
-	OS* os = OS::get_singleton();
-	PackedStringArray args = os->get_cmdline_user_args();
-
-	for (int i = 0; i < args.size(); i++) {
-		String arg = args[i];
-
-		if (arg.contains("=")) {
-			PackedStringArray key_value = arg.split("=");
-			String key = key_value[0].trim_prefix("--");
-
-			if (key == "cmd") {
-				return key_value[1];
-			}
-		}
-	}
-
-	return "";
 }
 
 int GreetdGreeter::connect_to_socket() {

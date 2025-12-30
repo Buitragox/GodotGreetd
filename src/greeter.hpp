@@ -25,7 +25,7 @@ public:
 
 	godot::Ref<GreetdResponse> create_session(const godot::String& username);
 	godot::Ref<GreetdResponse> answer_auth_message(const godot::String& answer);
-	godot::Ref<GreetdResponse> start_session(const godot::String& cmd = "");
+	godot::Ref<GreetdResponse> start_session(const godot::String& cmd);
 	godot::Ref<GreetdResponse> cancel_session();
 	godot::TypedArray<godot::Dictionary> get_wayland_sessions();
 	godot::TypedArray<godot::String> get_users();
@@ -36,6 +36,5 @@ private:
 	godot::Error read_json(int fd, json& response);
 	ssize_t write_all(int fd, const void* data, size_t len);
 	ssize_t read_all(int fd, void* data, size_t len);
-	godot::String get_cmd();
 	int connect_to_socket();
 };

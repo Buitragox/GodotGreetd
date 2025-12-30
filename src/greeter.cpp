@@ -24,7 +24,7 @@ using namespace godot;
 void GreetdGreeter::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("create_session", "username"), &GreetdGreeter::create_session);
 	ClassDB::bind_method(D_METHOD("answer_auth_message", "answer"), &GreetdGreeter::answer_auth_message);
-	ClassDB::bind_method(D_METHOD("start_session"), &GreetdGreeter::start_session);
+	ClassDB::bind_method(D_METHOD("start_session", "cmd"), &GreetdGreeter::start_session, DEFVAL(""));
 	ClassDB::bind_method(D_METHOD("cancel_session"), &GreetdGreeter::cancel_session);
 	ClassDB::bind_method(D_METHOD("get_wayland_sessions"), &GreetdGreeter::get_wayland_sessions);
 	ClassDB::bind_method(D_METHOD("get_users"), &GreetdGreeter::get_users);
@@ -54,21 +54,19 @@ Ref<GreetdResponse> GreetdGreeter::answer_auth_message(const String& answer) {
 	return response;
 }
 
-// TODO: Receive cmd as an argument. Maybe as an optional argument?
-// I think I just need to create another function with a different signature?
-// Need to think about how to approach this
-// - We should support both cmd and getting the session from gdscript
-// - Would it be alright to just make cmd a required argument and make `get_cmd?
-Ref<GreetdResponse> GreetdGreeter::start_session() {
+// TODO: is this approach with optional argument ok?
+// Is there a better way?
+Ref<GreetdResponse> GreetdGreeter::start_session(const String& cmd) {
 	int fd = connect_to_socket();
 	if (fd < 0) {
 		return memnew(GreetdError("internal_error", "Failed to connect socket"));
 	}
 
-	std::string cmd = get_cmd().utf8().get_data();
-	UtilityFunctions::print("cmd: ", cmd.data());
+	String session_cmd = cmd.is_empty() ? get_cmd() : cmd;
+	std::string cmd_str = session_cmd.utf8().get_data();
+	UtilityFunctions::print("cmd: ", cmd_str.data());
 
-	json request = {{"type", "start_session"}, {"cmd", {cmd}}};
+	json request = {{"type", "start_session"}, {"cmd", {cmd_str}}};
 	Ref<GreetdResponse> response = send_greetd_request(fd, request);
 	close(fd);
 	return response;
@@ -271,9 +269,8 @@ String GreetdGreeter::get_cmd() {
 			}
 		}
 	}
-	// TODO: probably delete this? No need to asume defaults.
-	// Run hyprland by default after login
-	return String("hyprland");
+
+	return "";
 }
 
 int GreetdGreeter::connect_to_socket() {

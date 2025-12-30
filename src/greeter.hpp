@@ -25,7 +25,7 @@ public:
 
 	godot::Ref<GreetdResponse> create_session(const godot::String& username);
 	godot::Ref<GreetdResponse> answer_auth_message(const godot::String& answer);
-	godot::Ref<GreetdResponse> start_session();
+	godot::Ref<GreetdResponse> start_session(const godot::String& cmd = "");
 	godot::Ref<GreetdResponse> cancel_session();
 	godot::TypedArray<godot::Dictionary> get_wayland_sessions();
 	godot::TypedArray<godot::String> get_users();

@@ -31,7 +31,7 @@ public:
 	godot::TypedArray<godot::String> get_users();
 
 private:
-	godot::Ref<GreetdResponse> send_greetd_request(int fd, json request);
+	godot::Ref<GreetdResponse> send_greetd_request(json request);
 	godot::Error write_json(int fd, json request);
 	godot::Error read_json(int fd, json& response);
 	ssize_t write_all(int fd, const void* data, size_t len);

@@ -4,6 +4,7 @@
 #include "godot_cpp/classes/global_constants.hpp"
 #include "godot_cpp/classes/os.hpp"
 #include "godot_cpp/core/class_db.hpp"
+#include "godot_cpp/core/memory.hpp"
 #include "godot_cpp/variant/dictionary.hpp"
 #include "godot_cpp/variant/packed_string_array.hpp"
 #include "godot_cpp/variant/string.hpp"
@@ -31,61 +32,78 @@ void GreetdGreeter::_bind_methods() {
 }
 
 Ref<GreetdResponse> GreetdGreeter::create_session(const String& username) {
-	int fd = connect_to_socket();
-	if (fd < 0) {
-		return memnew(GreetdError("internal_error", "Failed to connect socket"));
-	}
-
 	json request = {{"type", "create_session"}, {"username", username.utf8().get_data()}};
-	Ref<GreetdResponse> response = send_greetd_request(fd, request);
-	close(fd);
-	return response;
+	return send_greetd_request(request);
 }
 
 Ref<GreetdResponse> GreetdGreeter::answer_auth_message(const String& answer) {
-	int fd = connect_to_socket();
-	if (fd < 0) {
-		return memnew(GreetdError("internal_error", "Failed to connect socket"));
-	}
-
 	json request = {{"type", "post_auth_message_response"}, {"response", answer.utf8().get_data()}};
-	Ref<GreetdResponse> response = send_greetd_request(fd, request);
-	close(fd);
-	return response;
+	return send_greetd_request(request);
 }
 
-// TODO: is this approach with optional argument ok?
-// Is there a better way?
 Ref<GreetdResponse> GreetdGreeter::start_session(const String& cmd) {
-	int fd = connect_to_socket();
-	if (fd < 0) {
-		return memnew(GreetdError("internal_error", "Failed to connect socket"));
-	}
-
 	std::string cmd_str = cmd.utf8().get_data();
-	UtilityFunctions::print("cmd: ", cmd_str.data());
-
 	json request = {{"type", "start_session"}, {"cmd", {cmd_str}}};
-	Ref<GreetdResponse> response = send_greetd_request(fd, request);
-	close(fd);
-	return response;
+	return send_greetd_request(request);
 }
 
 Ref<GreetdResponse> GreetdGreeter::cancel_session() {
+	json request = {{"type", "cancel_session"}};
+	return send_greetd_request(request);
+}
+
+Ref<GreetdResponse> GreetdGreeter::send_greetd_request(json request) {
 	int fd = connect_to_socket();
 	if (fd < 0) {
 		return memnew(GreetdError("internal_error", "Failed to connect socket"));
 	}
 
-	json request = {{"type", "cancel_session"}};
-	Ref<GreetdResponse> response = send_greetd_request(fd, request);
+	Error err = write_json(fd, request);
+	if (err != Error::OK) {
+		close(fd);
+		return memnew(GreetdError("internal_error", "Failed to write JSON request"));
+	}
+
+	json response;
+	err = read_json(fd, response);
+	if (err != Error::OK) {
+		close(fd);
+		return memnew(GreetdError("internal_error", "Failed to read JSON response"));
+	}
+
 	close(fd);
-	return response;
+
+	if (!response.contains("type") || !response["type"].is_string()) {
+		String err_message = "Missing or invalid 'type' field in response";
+		UtilityFunctions::printerr(err_message);
+		return memnew(GreetdError("internal_error", err_message));
+	}
+
+	Ref<GreetdResponse> result;
+	std::string type = response["type"];
+	if (type == "success") {
+		result = Ref<GreetdResponse>(memnew(GreetdSuccess()));
+	} else if (type == "error") {
+		String err_type = response["error_type"].get<std::string>().c_str();
+		String err_message = response["description"].get<std::string>().c_str();
+		UtilityFunctions::printerr(err_message);
+		result = Ref<GreetdResponse>(memnew(GreetdError(err_type, err_message)));
+	} else if (type == "auth_message") {
+		String message_type = response["auth_message_type"].get<std::string>().c_str();
+		String auth_message = response["auth_message"].get<std::string>().c_str();
+		result = Ref<GreetdResponse>(memnew(GreetdAuthMessage(message_type, auth_message)));
+	} else {
+		String err_message = "Invalid 'type' field in response: " + String::utf8(type.c_str());
+		UtilityFunctions::printerr(err_message);
+		result = Ref<GreetdError>(memnew(GreetdError("internal_error", err_message)));
+	}
+
+	return result;
 }
 
 TypedArray<Dictionary> GreetdGreeter::get_wayland_sessions() {
 	TypedArray<Dictionary> sessions;
-	// TODO: I don't think this a standard on every distro. Probably need to check other places
+	// NOTE: I don't think this a standard on every distro. Probably need to check other places
 	// or add the ability for people to set their own paths?
 	const String path = "/usr/share/wayland-sessions/";
 
@@ -102,6 +120,12 @@ TypedArray<Dictionary> GreetdGreeter::get_wayland_sessions() {
 		Ref<FileAccess> file = FileAccess::open(path + file_name, FileAccess::READ);
 		while (file->get_position() < file->get_length()) {
 			String line = file->get_line();
+
+			// Strip leading whitespace and check for comment
+			String trimmed_line = line.strip_edges(true, false);
+			if (trimmed_line.begins_with("#")) {
+				continue;
+			}
 
 			if (line.find("=") == -1) {
 				continue;
@@ -137,43 +161,6 @@ TypedArray<String> GreetdGreeter::get_users() {
 	endpwent();
 
 	return users;
-}
-
-Ref<GreetdResponse> GreetdGreeter::send_greetd_request(int fd, json request) {
-	Error err = write_json(fd, request);
-	if (err != Error::OK) {
-		return memnew(GreetdError("internal_error", "Failed to write JSON request"));
-	}
-
-	json response;
-	err = read_json(fd, response);
-
-	if (err != Error::OK) {
-		return memnew(GreetdError("internal_error", "Failed to read JSON response"));
-	}
-
-	if (!response.contains("type") || !response["type"].is_string()) {
-		String err_message = "Missing or invalid 'type' field in response";
-		UtilityFunctions::printerr(err_message);
-		return memnew(GreetdError("internal_error", err_message));
-	}
-
-	Ref<GreetdResponse> result;
-	std::string type = response["type"];
-	if (type == "success") {
-		result = Ref<GreetdResponse>(memnew(GreetdSuccess()));
-	} else if (type == "error") {
-		String err_type = response["error_type"].get<std::string>().c_str();
-		String err_message = response["description"].get<std::string>().c_str();
-		UtilityFunctions::printerr(err_message);
-		result = Ref<GreetdResponse>(memnew(GreetdError(err_type, err_message)));
-	} else if (type == "auth_message") {
-		String message_type = response["auth_message_type"].get<std::string>().c_str();
-		String auth_message = response["auth_message"].get<std::string>().c_str();
-		result = Ref<GreetdResponse>(memnew(GreetdAuthMessage(message_type, auth_message)));
-	}
-
-	return result;
 }
 
 Error GreetdGreeter::write_json(int fd, json request) {

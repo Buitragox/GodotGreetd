@@ -11,8 +11,7 @@ void GreetdResponse::_bind_methods() {
 void GreetdSuccess::_bind_methods() {
 }
 
-GreetdError::GreetdError(const String& type, const String& description)
-	: error_type(type), error_description(description) {
+GreetdError::GreetdError(const String &type, const String &description) : error_type(type), error_description(description) {
 }
 
 // Error class
@@ -50,8 +49,7 @@ void GreetdAuthMessage::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_auth_message"), &GreetdAuthMessage::get_auth_message);
 }
 
-GreetdAuthMessage::GreetdAuthMessage(const String& type, const String& message)
-	: auth_message_type(type), auth_message(message) {
+GreetdAuthMessage::GreetdAuthMessage(const String &type, const String &message) : auth_message_type(type), auth_message(message) {
 }
 
 String GreetdAuthMessage::get_auth_message_type() const {

@@ -40,7 +40,7 @@ protected:
 
 public:
 	GreetdError() = default;
-	GreetdError(const godot::String& type, const godot::String& description);
+	GreetdError(const godot::String &type, const godot::String &description);
 	~GreetdError() override = default;
 
 	godot::String get_error_description() const;
@@ -62,7 +62,7 @@ protected:
 
 public:
 	GreetdAuthMessage() = default;
-	GreetdAuthMessage(const godot::String& message_type, const godot::String& message);
+	GreetdAuthMessage(const godot::String &message_type, const godot::String &message);
 	~GreetdAuthMessage() override = default;
 
 	godot::String get_auth_message_type() const;

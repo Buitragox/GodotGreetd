@@ -11,6 +11,7 @@
 #include "godot_cpp/variant/typed_array.hpp"
 #include "godot_cpp/variant/utility_functions.hpp"
 #include "greetd_response.hpp"
+#include <pwd.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <sys/un.h>
@@ -18,7 +19,6 @@
 #include <cstdint>
 #include <cstring>
 #include <string>
-#include <pwd.h>
 
 using namespace godot;
 
@@ -31,24 +31,24 @@ void GreetdGreeter::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_users"), &GreetdGreeter::get_users);
 }
 
-Ref<GreetdResponse> GreetdGreeter::create_session(const String& username) {
-	json request = {{"type", "create_session"}, {"username", username.utf8().get_data()}};
+Ref<GreetdResponse> GreetdGreeter::create_session(const String &username) {
+	json request = { { "type", "create_session" }, { "username", username.utf8().get_data() } };
 	return send_greetd_request(request);
 }
 
-Ref<GreetdResponse> GreetdGreeter::answer_auth_message(const String& answer) {
-	json request = {{"type", "post_auth_message_response"}, {"response", answer.utf8().get_data()}};
+Ref<GreetdResponse> GreetdGreeter::answer_auth_message(const String &answer) {
+	json request = { { "type", "post_auth_message_response" }, { "response", answer.utf8().get_data() } };
 	return send_greetd_request(request);
 }
 
-Ref<GreetdResponse> GreetdGreeter::start_session(const String& cmd) {
+Ref<GreetdResponse> GreetdGreeter::start_session(const String &cmd) {
 	std::string cmd_str = cmd.utf8().get_data();
-	json request = {{"type", "start_session"}, {"cmd", {cmd_str}}};
+	json request = { { "type", "start_session" }, { "cmd", { cmd_str } } };
 	return send_greetd_request(request);
 }
 
 Ref<GreetdResponse> GreetdGreeter::cancel_session() {
-	json request = {{"type", "cancel_session"}};
+	json request = { { "type", "cancel_session" } };
 	return send_greetd_request(request);
 }
 
@@ -142,7 +142,7 @@ TypedArray<Dictionary> GreetdGreeter::get_wayland_sessions() {
 
 TypedArray<String> GreetdGreeter::get_users() {
 	TypedArray<String> users;
-	struct passwd* pw;
+	struct passwd *pw;
 
 	// NOTE: not sure if these values are always correct.
 	const int MIN_USER_ID = 1000;
@@ -165,7 +165,7 @@ TypedArray<String> GreetdGreeter::get_users() {
 
 Error GreetdGreeter::write_json(int fd, json request) {
 	std::string json_str = request.dump();
-	const char* c_str = json_str.c_str();
+	const char *c_str = json_str.c_str();
 	uint32_t size = json_str.size();
 
 	ssize_t n = write_all(fd, &size, 4);
@@ -182,7 +182,7 @@ Error GreetdGreeter::write_json(int fd, json request) {
 	return Error::OK;
 }
 
-Error GreetdGreeter::read_json(int fd, json& response) {
+Error GreetdGreeter::read_json(int fd, json &response) {
 	uint32_t response_size;
 	ssize_t n = read_all(fd, &response_size, 4);
 	if (n < 0) {
@@ -209,9 +209,8 @@ Error GreetdGreeter::read_json(int fd, json& response) {
 	return Error::OK;
 }
 
-
-ssize_t GreetdGreeter::write_all(int fd, const void* data, size_t len) {
-	const uint8_t* ptr = static_cast<const uint8_t*>(data);
+ssize_t GreetdGreeter::write_all(int fd, const void *data, size_t len) {
+	const uint8_t *ptr = static_cast<const uint8_t *>(data);
 	ssize_t total = 0;
 
 	while (total < len) {
@@ -224,8 +223,8 @@ ssize_t GreetdGreeter::write_all(int fd, const void* data, size_t len) {
 	return total;
 }
 
-ssize_t GreetdGreeter::read_all(int fd, void* data, size_t len) {
-	uint8_t* ptr = static_cast<uint8_t*>(data);
+ssize_t GreetdGreeter::read_all(int fd, void *data, size_t len) {
+	uint8_t *ptr = static_cast<uint8_t *>(data);
 	ssize_t total = 0;
 
 	while (total < len) {
@@ -244,7 +243,7 @@ int GreetdGreeter::connect_to_socket() {
 	if (env_sock.is_empty()) {
 		env_sock = "/tmp/example_socket";
 	}
-	const char* path = env_sock.utf8().get_data();
+	const char *path = env_sock.utf8().get_data();
 
 	int fd = socket(AF_UNIX, SOCK_STREAM, 0);
 	if (fd < 0) {
@@ -256,7 +255,7 @@ int GreetdGreeter::connect_to_socket() {
 	address.sun_family = AF_UNIX;
 	std::strncpy(address.sun_path, path, sizeof(address.sun_path) - 1);
 
-	int err = ::connect(fd, (struct sockaddr*)&address, sizeof(address));
+	int err = ::connect(fd, (struct sockaddr *)&address, sizeof(address));
 	if (err < 0) {
 		close(fd);
 		String err_message = "Failed to connect to socket (" + String::utf8(strerror(errno)) + ")";

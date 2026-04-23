@@ -16,6 +16,7 @@
 #include <sys/types.h>
 #include <sys/un.h>
 #include <unistd.h>
+#include <cerrno>
 #include <cstdint>
 #include <cstring>
 #include <string>
@@ -118,6 +119,12 @@ TypedArray<Dictionary> GreetdGreeter::get_wayland_sessions() {
 	for (String file_name : dir->get_files()) {
 		Dictionary session;
 		Ref<FileAccess> file = FileAccess::open(path + file_name, FileAccess::READ);
+		if (file.is_null()) {
+			Error err = FileAccess::get_open_error();
+			UtilityFunctions::printerr("Failed to open session file '", file_name, "' (Error ", err, ")");
+			continue;
+		}
+
 		while (file->get_position() < file->get_length()) {
 			String line = file->get_line();
 

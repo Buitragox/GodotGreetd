@@ -3,6 +3,8 @@ extends Node
 const CONFIG_PATH = "user://config.cfg"
 var greeter := GreetdGreeter.new()
 var config := ConfigFile.new()
+var auth_thread: Thread = null
+var is_authenticating := false
 
 func _init() -> void:
 	var screen_size := DisplayServer.screen_get_size()
@@ -84,6 +86,14 @@ func _notification(what: int) -> void:
 
 
 func login() -> void:
+	# Prevent multiple simultaneous login attempts
+	if is_authenticating:
+		return
+
+	is_authenticating = true
+	_set_ui_enabled(false)
+	%Alert.text = "Authenticating..."
+
 	var username: String = %Username.text
 	var password: String = %Password.text
 	var response := greeter.create_session(username)
@@ -91,6 +101,8 @@ func login() -> void:
 	if response is GreetdError:
 		%Alert.text = response.get_error_description()
 		_log_info(response.get_error_description())
+		is_authenticating = false
+		_set_ui_enabled(true)
 		return
 	elif response is GreetdAuthMessage:
 		_log_info("%s - %s" % [response.get_auth_message_type(), response.get_auth_message()])
@@ -100,15 +112,36 @@ func login() -> void:
 		pass
 
 	_log_info("Session created")
-	response = greeter.answer_auth_message(password)
+
+	# Run the blocking authentication on a separate thread
+	auth_thread = Thread.new()
+	auth_thread.start(_authenticate_thread.bind(password))
+
+
+func _authenticate_thread(password: String) -> void:
+	var response = greeter.answer_auth_message(password)
+	# Call back to main thread to handle the response
+	call_deferred("_on_auth_complete", response)
+
+
+func _on_auth_complete(response) -> void:
+	# Clean up the thread
+	if auth_thread:
+		auth_thread.wait_to_finish()
+		auth_thread = null
+
 	if response is GreetdError:
 		%Alert.text = response.get_error_description()
 		_log_info(response.get_error_description())
 		cancel_session()
+		is_authenticating = false
+		_set_ui_enabled(true)
 		return
 	elif response is GreetdAuthMessage:
 		_log_info("Unexpected: %s - %s" % [response.get_auth_message_type(), response.get_auth_message()])
 		cancel_session()
+		is_authenticating = false
+		_set_ui_enabled(true)
 		return
 	else:
 		_log_info("Auth answered")
@@ -119,10 +152,14 @@ func login() -> void:
 		%Alert.text = response.get_error_description()
 		_log_info(response.get_error_description())
 		cancel_session()
+		is_authenticating = false
+		_set_ui_enabled(true)
 		return
 	elif response is GreetdAuthMessage:
 		_log_info("Unexpected: %s - %s" % [response.get_auth_message_type(), response.get_auth_message()])
 		cancel_session()
+		is_authenticating = false
+		_set_ui_enabled(true)
 		return
 	else:
 		_log_info("Session started")
@@ -138,6 +175,13 @@ func login() -> void:
 func _quit() -> void:
 	config.save(CONFIG_PATH)
 	get_tree().quit()
+
+
+func _set_ui_enabled(enabled: bool) -> void:
+	%LogIn.disabled = not enabled
+	%Password.editable = enabled
+	%Username.disabled = not enabled
+	%SessionSelect.disabled = not enabled
 
 
 func _log_info(text: String) -> void:

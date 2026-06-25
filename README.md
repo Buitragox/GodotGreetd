@@ -1,5 +1,4 @@
 # GodotGreetd
----
 A GDExtension for the [Greetd](https://man.sr.ht/~kennylevinsen/greetd/) IPC Protocol.
 
 Create **greeters** (login applications) using the [Godot game engine](https://godotengine.org/).

@@ -1,15 +1,14 @@
-from socket import socket, AF_UNIX, SOCK_STREAM
 import json
 import os
 import struct
+from socket import AF_UNIX, SOCK_STREAM, socket
 
-
+PAYLOAD_LENGTH = 4  # bytes
 SOCKET_PATH = "/tmp/example_socket"
 
 
 def receive_and_send(conn: socket):
-    # PAYLOAD_LENGTH = 4 #bytes
-    data = conn.recv(4)
+    data = conn.recv(PAYLOAD_LENGTH)
     payload_size = struct.unpack("=I", data)[0]
     print(f"Received: {payload_size}")
 

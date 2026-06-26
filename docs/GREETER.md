@@ -69,6 +69,14 @@ sudo chmod -R 700 /home/greeter
 
 # TODO
 
+- Explain that you obviously need to install godot (min version?)
+- Explain the greetd config
 - Easily download and install the extension
+	  - First release?
 - Explain the full installation process
 - Rename "Deploying your greeter", maybe "Install/Use your greeter"?
+- Explain that the demo does not fully implement all expected functionality from greetd
+		- Or just implement it? lol
+- Add an easy install for the demo greeter
+		- Rename the demo greeter to something better.
+      While it is a demo, the idea is for it to be fully functional and you should be able to actually use it.

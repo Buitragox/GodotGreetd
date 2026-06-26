@@ -7,7 +7,7 @@ Create **greeters** (login applications) using the [Godot game engine](https://g
 **Is this a good idea?** I don't know, but it's fun :)
 
 <p align="center">
-  <img src="docs/example-greeter.png" alt="Example greeter" style="max-width: 90%">
+  <img src="docs/example-greeter.png" alt="Example greeter" width="1000">
 </p>
 
 ## Getting Started

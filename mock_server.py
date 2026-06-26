@@ -1,3 +1,9 @@
+#!/usr/bin/env python3
+"""Mock greetd IPC server for testing. See docs/greetd-protocol.md for protocol details.
+
+Valid passwords: password, 1234, admin
+"""
+
 import argparse
 import json
 import logging
@@ -7,11 +13,10 @@ import time
 from enum import Enum, auto
 from socket import AF_UNIX, SOCK_STREAM, socket
 
-log = logging.getLogger(__name__)
-
 PAYLOAD_LENGTH = 4  # bytes
 SOCKET_PATH = "/tmp/example_socket"
 AUTH_FAIL_DELAY = 3.0  # seconds to wait on wrong password
+VALID_PASSWORDS = ["password", "1234", "admin"]
 
 
 class State(Enum):
@@ -19,6 +24,8 @@ class State(Enum):
     AWAITING_AUTH = auto()
     READY = auto()
 
+
+log = logging.getLogger(__name__)
 
 state = State.IDLE
 
@@ -86,7 +93,9 @@ def create_response(request: dict[str, str], simulate_delay: bool) -> dict[str, 
             state = State.AWAITING_AUTH
             log.debug("state -> %s", state.name)
             return create_auth_response("secret", "mocking:")
-        case {"type": "post_auth_message_response", "response": "bad_password"}:
+        case {"type": "post_auth_message_response", "response": response} if (
+            response not in VALID_PASSWORDS
+        ):
             if simulate_delay:
                 log.info("Simulating %ss delay for wrong password...", AUTH_FAIL_DELAY)
                 time.sleep(AUTH_FAIL_DELAY)
@@ -162,8 +171,8 @@ if __name__ == "__main__":
         help="Disable the simulated delay on wrong password",
     )
     parser.add_argument(
-        "--verbose",
         "-v",
+        "--verbose",
         action="store_true",
         help="Enable debug logging",
     )

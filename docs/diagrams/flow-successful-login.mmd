@@ -1,0 +1,11 @@
+sequenceDiagram
+    participant G as Greeter
+    participant D as greetd
+
+    G->>D: create_session(username)
+    D->>G: auth_message(secret)
+    G->>D: post_auth_message_response(password)
+    D->>G: success
+    G->>D: start_session(cmd)
+    D->>G: success
+    Note over G, D: Greeter exits, session starts

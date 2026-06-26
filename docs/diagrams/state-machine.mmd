@@ -1,0 +1,22 @@
+---
+config:
+  layout: elk
+  elk:
+    nodePlacementStrategy: LINEAR_SEGMENTS
+    layeringStrategy: LONGEST_PATH
+---
+stateDiagram-v2
+    direction LR
+    state Idle
+    state AwaitingAuth
+    state Ready
+
+    [*] --> Idle
+    Idle --> AwaitingAuth : create (auth_message)
+    Idle --> Ready : create (success)
+    AwaitingAuth --> AwaitingAuth : answer (auth_message)
+    AwaitingAuth --> Ready : answer (success)
+    AwaitingAuth --> Idle : answer (auth_error)
+    AwaitingAuth --> Idle : cancel
+    Ready --> Idle : start
+    Ready --> Idle : cancel

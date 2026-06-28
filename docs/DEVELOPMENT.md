@@ -10,7 +10,7 @@ This guide is for developing the GDExtension C++ code itself.
    ```sh
    git submodule update --init
    ```
-   Currently using the Godot 4.5 branch, but older 4.x likely works too. You can configure this in `.gitmodules`.
+   Currently using the Godot 4.5 branch, but older 4.x likely works too. You can configure this in [`.gitmodules`](../.gitmodules).
 
 3. Install scons:
    ```sh
@@ -45,11 +45,11 @@ scons compiledb=yes use_llvm=true
 
 ## GDExtension classes
 
-Register classes in `register_types.cpp` in the initialization method using `GDREGISTER_CLASS(ClassName);`.
+Register classes in [`register_types.cpp`](../src/register_types.cpp) in the initialization method using `GDREGISTER_CLASS(ClassName);`.
 
 ## GitHub Actions
 
-The repo has a GitHub action that builds the GDExtension on each push. Edit it in `.github/workflows/builds.yml`. After a workflow run, find the artifact on the Actions tab.
+The repo has a GitHub action that builds the GDExtension on each push. Edit it in [`.github/workflows/builds.yml`](../.github/workflows/builds.yml). After a workflow run, find the artifact on the Actions tab.
 
 ## TODO
 

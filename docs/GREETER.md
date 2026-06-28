@@ -22,7 +22,7 @@ See [greetd-protocol.md](greetd-protocol.md) for the full protocol reference, st
 
 ## Example
 
-See `demo/login_screen.gd` for a working example.
+See [`demo/login_screen.gd`](../demo/login_screen.gd) for a working example.
 
 ## Utilities
 
@@ -34,7 +34,7 @@ The extension provides some useful utilities:
 
 ## Testing with the mock server
 
-`mock_server.py` implements a mock greetd server that connects to `/tmp/example_socket`.
+[`mock_server.py`](../mock_server.py) implements a mock greetd server that connects to `/tmp/example_socket`.
 
 ```sh
 python mock_server.py

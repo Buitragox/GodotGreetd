@@ -205,7 +205,6 @@ Error GreetdGreeter::read_json(int fd, json &response) {
 	}
 
 	buffer[response_size] = '\0';
-	UtilityFunctions::print("Received: ", buffer.data());
 
 	response = json::parse(buffer.data(), nullptr, false);
 	if (response.is_discarded()) {

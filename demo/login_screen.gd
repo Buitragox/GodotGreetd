@@ -99,13 +99,13 @@ func login() -> void:
 	var response := greeter.create_session(username)
 
 	if response is GreetdError:
-		%Alert.text = response.get_error_description()
-		_log_info(response.get_error_description())
+		%Alert.text = response.error_description
+		_log_info(response.error_description)
 		is_authenticating = false
 		_set_ui_enabled(true)
 		return
 	elif response is GreetdAuthMessage:
-		_log_info("%s - %s" % [response.get_auth_message_type(), response.get_auth_message()])
+		_log_info("%s - %s" % [response.auth_message_type, response.auth_message])
 	else:
 		# TODO if the response is a success then we can start the session
 		# How does that happen? Users without passwords?
@@ -124,21 +124,21 @@ func _authenticate_thread(password: String) -> void:
 	call_deferred("_on_auth_complete", response)
 
 
-func _on_auth_complete(response) -> void:
+func _on_auth_complete(response: GreetdResponse) -> void:
 	# Clean up the thread
 	if auth_thread:
 		auth_thread.wait_to_finish()
 		auth_thread = null
 
 	if response is GreetdError:
-		%Alert.text = response.get_error_description()
-		_log_info(response.get_error_description())
+		%Alert.text = response.error_description
+		_log_info(response.error_description)
 		cancel_session()
 		is_authenticating = false
 		_set_ui_enabled(true)
 		return
 	elif response is GreetdAuthMessage:
-		_log_info("Unexpected: %s - %s" % [response.get_auth_message_type(), response.get_auth_message()])
+		_log_info("Unexpected: %s - %s" % [response.auth_message_type, response.auth_message])
 		cancel_session()
 		is_authenticating = false
 		_set_ui_enabled(true)
@@ -149,14 +149,14 @@ func _on_auth_complete(response) -> void:
 	var cmd = %SessionSelect.get_selected_metadata()
 	response = greeter.start_session(cmd)
 	if response is GreetdError:
-		%Alert.text = response.get_error_description()
-		_log_info(response.get_error_description())
+		%Alert.text = response.error_description
+		_log_info(response.error_description)
 		cancel_session()
 		is_authenticating = false
 		_set_ui_enabled(true)
 		return
 	elif response is GreetdAuthMessage:
-		_log_info("Unexpected: %s - %s" % [response.get_auth_message_type(), response.get_auth_message()])
+		_log_info("Unexpected: %s - %s" % [response.auth_message_type, response.auth_message])
 		cancel_session()
 		is_authenticating = false
 		_set_ui_enabled(true)
@@ -191,9 +191,9 @@ func _log_info(text: String) -> void:
 func cancel_session() -> void:
 	var response := greeter.cancel_session()
 	if response is GreetdError:
-		_log_info(response.get_error_description())
+		_log_info(response.error_description)
 	elif response is GreetdAuthMessage:
-		_log_info("Unexpected: %s - %s" % [response.get_auth_message_type(), response.get_auth_message()])
+		_log_info("Unexpected: %s - %s" % [response.auth_message_type, response.auth_message])
 	else:
 		%Password.call_deferred("grab_focus")
 		_log_info("Cancelled successfully")

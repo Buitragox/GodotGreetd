@@ -69,6 +69,7 @@ sudo chmod -R 700 /home/greeter
 
 # TODO
 
+- Add documentation to classes/methods that is available from Godot
 - Explain that you obviously need to install godot (min version?)
 - Explain the greetd config
 - Easily download and install the extension

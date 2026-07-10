@@ -20,6 +20,10 @@
 #include <cstdint>
 #include <cstring>
 #include <string>
+#include <sys/socket.h>
+#include <sys/un.h>
+#include <unistd.h>
+#include <vector>
 
 using namespace godot;
 
@@ -250,7 +254,8 @@ int GreetdGreeter::connect_to_socket() {
 	if (env_sock.is_empty()) {
 		env_sock = "/tmp/example_socket";
 	}
-	const char *path = env_sock.utf8().get_data();
+	CharString socket_path = env_sock.utf8();
+	const char *path = socket_path.get_data();
 
 	int fd = socket(AF_UNIX, SOCK_STREAM, 0);
 	if (fd < 0) {

@@ -6,6 +6,12 @@ reloadable = true
 
 [libraries]
 ; Relative paths ensure that our GDExtension can be placed anywhere in the project directory.
+
+macos.single.debug = "./macos/libgreetd.macos.template_debug.dylib"
+macos.double.debug = "./macos/libgreetd.macos.template_debug.double.dylib"
+macos.single.release = "./macos/libgreetd.macos.template_release.dylib"
+macos.double.release = "./macos/libgreetd.macos.template_release.double.dylib"
+
 linux.x86_64.single.debug = "./linux/libgreetd.linux.template_debug.x86_64.so"
 linux.x86_64.double.debug = "./linux/libgreetd.linux.template_debug.x86_64.double.so"
 linux.x86_64.single.release = "./linux/libgreetd.linux.template_release.x86_64.so"

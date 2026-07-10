@@ -36,14 +36,16 @@ Run the following command to download godot-cpp:
     git submodule update --init --recursive""")
     sys.exit(1)
 
-mock_backend = env["mock_backend"]
-mock_backend_arg = ARGUMENTS.pop("mock_backend", None)
-try:
-    env = SConscript("godot-cpp/SConstruct", {"env": env, "customs": customs})
-finally:
-    if mock_backend_arg is not None:
-        ARGUMENTS["mock_backend"] = mock_backend_arg
-env["mock_backend"] = mock_backend
+# Remove the argument to avoid unknown variable warning
+mock_backend = ARGUMENTS.pop("mock_backend", None)
+
+env = SConscript("godot-cpp/SConstruct", {"env": env, "customs": customs})
+
+# Set the argument back
+if mock_backend is not None:
+    env["mock_backend"] = mock_backend
+    ARGUMENTS["mock_backend"] = mock_backend
+
 
 env.Append(CPPPATH=["src/", "include/"])
 

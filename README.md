@@ -22,3 +22,5 @@ This extension implements the greetd IPC protocol as GDScript-friendly classes. 
 
 - The original background image used in the demo was made by Park JunKyu (Ghaliera) ([link](https://wallhaven.cc/w/k899o7))
 	- I forgot where I got the specific image that I'm using with that color scheme. I also edited the image to move the girl's face to the right.
+
+- Thanks to [nlohmann/json](https://github.com/nlohmann/json) for creating an excellent JSON library for CPP.

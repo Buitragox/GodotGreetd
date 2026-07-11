@@ -8,8 +8,10 @@
 #include "godot_cpp/variant/string.hpp"
 #include "godot_cpp/variant/typed_array.hpp"
 #include "greetd_response.hpp"
-#include <sys/types.h>
+#include "greeter_backend.hpp"
 #include <json.hpp>
+#include <memory>
+#include <sys/types.h>
 
 using json = nlohmann::json;
 
@@ -20,8 +22,8 @@ protected:
 	static void _bind_methods();
 
 public:
-	GreetdGreeter() = default;
-	~GreetdGreeter() override = default;
+	GreetdGreeter();
+	~GreetdGreeter() override;
 
 	godot::Ref<GreetdResponse> create_session(const godot::String &username);
 	godot::Ref<GreetdResponse> answer_auth_message(const godot::String &answer);
@@ -37,4 +39,6 @@ private:
 	ssize_t write_all(int fd, const void *data, size_t len);
 	ssize_t read_all(int fd, void *data, size_t len);
 	int connect_to_socket();
+
+	std::unique_ptr<GreeterBackend> backend;
 };

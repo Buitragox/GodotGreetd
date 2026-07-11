@@ -1,25 +1,18 @@
 #include "greeter.hpp"
-#include "godot_cpp/classes/dir_access.hpp"
-#include "godot_cpp/classes/file_access.hpp"
-#include "godot_cpp/classes/global_constants.hpp"
+
 #include "godot_cpp/classes/os.hpp"
 #include "godot_cpp/core/class_db.hpp"
 #include "godot_cpp/core/memory.hpp"
-#include "godot_cpp/variant/dictionary.hpp"
-#include "godot_cpp/variant/packed_string_array.hpp"
-#include "godot_cpp/variant/string.hpp"
-#include "godot_cpp/variant/typed_array.hpp"
 #include "godot_cpp/variant/utility_functions.hpp"
-#include "greetd_response.hpp"
-#include <pwd.h>
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <sys/un.h>
-#include <unistd.h>
+#include "greeter_backend.hpp"
 #include <cerrno>
 #include <cstdint>
 #include <cstring>
 #include <string>
+#include <sys/socket.h>
+#include <sys/un.h>
+#include <unistd.h>
+#include <vector>
 
 using namespace godot;
 
@@ -31,6 +24,12 @@ void GreetdGreeter::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_wayland_sessions"), &GreetdGreeter::get_wayland_sessions);
 	ClassDB::bind_method(D_METHOD("get_users"), &GreetdGreeter::get_users);
 }
+
+GreetdGreeter::GreetdGreeter() :
+		backend(create_greeter_backend()) {
+}
+
+GreetdGreeter::~GreetdGreeter() = default;
 
 Ref<GreetdResponse> GreetdGreeter::create_session(const String &username) {
 	json request = { { "type", "create_session" }, { "username", username.utf8().get_data() } };
@@ -51,6 +50,14 @@ Ref<GreetdResponse> GreetdGreeter::start_session(const String &cmd) {
 Ref<GreetdResponse> GreetdGreeter::cancel_session() {
 	json request = { { "type", "cancel_session" } };
 	return send_greetd_request(request);
+}
+
+TypedArray<Dictionary> GreetdGreeter::get_wayland_sessions() {
+	return backend->get_wayland_sessions();
+}
+
+TypedArray<String> GreetdGreeter::get_users() {
+	return backend->get_users();
 }
 
 Ref<GreetdResponse> GreetdGreeter::send_greetd_request(json request) {
@@ -100,74 +107,6 @@ Ref<GreetdResponse> GreetdGreeter::send_greetd_request(json request) {
 	}
 
 	return result;
-}
-
-TypedArray<Dictionary> GreetdGreeter::get_wayland_sessions() {
-	TypedArray<Dictionary> sessions;
-	// NOTE: I don't think this a standard on every distro. Probably need to check other places
-	// or add the ability for people to set their own paths?
-	const String path = "/usr/share/wayland-sessions/";
-
-	Ref<DirAccess> dir = DirAccess::open(path);
-	if (dir.is_null()) {
-		Error err = DirAccess::get_open_error();
-		UtilityFunctions::printerr("Failed to access sessions directory (Error ", err, ")");
-		return sessions;
-	}
-
-	// NOTE: This is a very simple parsing, maybe it will be necessary to refine this later
-	for (String file_name : dir->get_files()) {
-		Dictionary session;
-		Ref<FileAccess> file = FileAccess::open(path + file_name, FileAccess::READ);
-		if (file.is_null()) {
-			Error err = FileAccess::get_open_error();
-			UtilityFunctions::printerr("Failed to open session file '", file_name, "' (Error ", err, ")");
-			continue;
-		}
-
-		while (file->get_position() < file->get_length()) {
-			String line = file->get_line();
-
-			// Strip leading whitespace and check for comment
-			String trimmed_line = line.strip_edges(true, false);
-			if (trimmed_line.begins_with("#")) {
-				continue;
-			}
-
-			if (line.find("=") == -1) {
-				continue;
-			}
-
-			PackedStringArray key_value = line.split("=", true, 1);
-			session[key_value[0]] = key_value[1];
-		}
-		sessions.append(session);
-	}
-
-	return sessions;
-}
-
-TypedArray<String> GreetdGreeter::get_users() {
-	TypedArray<String> users;
-	struct passwd *pw;
-
-	// NOTE: not sure if these values are always correct.
-	const int MIN_USER_ID = 1000;
-	const int MAX_USER_ID = 60000;
-
-	setpwent();
-
-	while ((pw = getpwent()) != nullptr) {
-		if (pw->pw_uid < 1000 || pw->pw_uid >= 60000) {
-			continue;
-		}
-
-		users.append(pw->pw_name);
-	}
-
-	endpwent();
-
-	return users;
 }
 
 Error GreetdGreeter::write_json(int fd, json request) {
@@ -249,7 +188,8 @@ int GreetdGreeter::connect_to_socket() {
 	if (env_sock.is_empty()) {
 		env_sock = "/tmp/example_socket";
 	}
-	const char *path = env_sock.utf8().get_data();
+	CharString socket_path = env_sock.utf8();
+	const char *path = socket_path.get_data();
 
 	int fd = socket(AF_UNIX, SOCK_STREAM, 0);
 	if (fd < 0) {

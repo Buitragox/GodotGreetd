@@ -2,7 +2,7 @@
 
 A GDExtension for the [Greetd](https://man.sr.ht/~kennylevinsen/greetd/) IPC Protocol.
 
-Create **greeters** (login applications) using the [Godot game engine](https://godotengine.org/).
+Create **greeters** (login applications) for your linux PC using the [Godot game engine](https://godotengine.org/).
 
 **Is this a good idea?** I don't know, but it's fun :)
 
@@ -22,3 +22,7 @@ This extension implements the greetd IPC protocol as GDScript-friendly classes. 
 
 - The original background image used in the demo was made by Park JunKyu (Ghaliera) ([link](https://wallhaven.cc/w/k899o7))
 	- I forgot where I got the specific image that I'm using with that color scheme. I also edited the image to move the girl's face to the right.
+
+- Thanks to [nlohmann/json](https://github.com/nlohmann/json) for creating an excellent JSON library for C++.
+
+- Thanks to [gtkgreet](https://git.sr.ht/~kennylevinsen/gtkgreet) and [ReGreet](https://github.com/rharish101/ReGreet) for their reference implementations.

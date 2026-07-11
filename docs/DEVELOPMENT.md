@@ -18,7 +18,7 @@ This guide is for developing the GDExtension C++ code itself.
    ```
    CMake may work but isn't tested.
 
-4. Install a C++ compiler like clang (or g++):
+4. (Optional) Install a C++ the clang compiler (or use g++):
    ```sh
    sudo pacman -S clang
    ```
@@ -27,6 +27,22 @@ This guide is for developing the GDExtension C++ code itself.
    ```sh
    scons
    ```
+
+   The library is copied to `demo/bin/<platform>/`, ready for the demo project to load.
+
+## Developing with mock system data
+
+The system backend provides the values returned by `get_users()` and `get_wayland_sessions()`:
+
+- Linux uses local system users and `/usr/share/wayland-sessions/` by default.
+- macOS uses preset mock users and sessions automatically, so the demo can run without Linux system data.
+- Linux can use the same mock backend with:
+
+  ```sh
+  scons mock_backend=yes
+  ```
+
+The backend does not mock greetd IPC. Run [`mock_server.py`](../mock_server.py) separately when testing the login flow locally.
 
 ## Configuring an IDE or language server
 

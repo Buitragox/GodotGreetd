@@ -22,6 +22,7 @@ customs = ["custom.py"]
 customs = [os.path.abspath(path) for path in customs]
 
 opts = Variables(customs, ARGUMENTS)
+opts.Add(BoolVariable("mock_backend", "Build with mocked OS data. Use mock_server.py to mock greetd.", False))
 opts.Update(localEnv)
 
 Help(opts.GenerateHelpText(localEnv))
@@ -35,9 +36,21 @@ Run the following command to download godot-cpp:
     git submodule update --init --recursive""")
     sys.exit(1)
 
+# Remove the argument to avoid unknown variable warning
+mock_backend = ARGUMENTS.pop("mock_backend", None)
+
 env = SConscript("godot-cpp/SConstruct", {"env": env, "customs": customs})
 
+# Set the argument back
+if mock_backend is not None:
+    env["mock_backend"] = mock_backend
+    ARGUMENTS["mock_backend"] = mock_backend
+
+
 env.Append(CPPPATH=["src/", "include/"])
+
+if env["mock_backend"] or env["platform"] == "macos":
+    env.Append(CPPDEFINES=["GREETD_MOCK_BACKEND"])
 
 sources = Glob("src/*.cpp")
 sources.extend(Glob("src/*/*.cpp"))

@@ -63,4 +63,8 @@ public:
 
 	godot::String get_auth_message_type() const;
 	godot::String get_auth_message() const;
+	bool is_secret() const;
+	bool is_visible() const;
+	bool is_error() const;
+	bool is_info() const;
 };

@@ -7,6 +7,7 @@
 #include "godot_cpp/variant/dictionary.hpp"
 #include "godot_cpp/variant/string.hpp"
 #include "godot_cpp/variant/typed_array.hpp"
+#include "godot_cpp/variant/variant.hpp"
 #include "greetd_response.hpp"
 #include <sys/types.h>
 #include <json.hpp>
@@ -24,7 +25,7 @@ public:
 	~GreetdGreeter() override = default;
 
 	godot::Ref<GreetdResponse> create_session(const godot::String &username);
-	godot::Ref<GreetdResponse> answer_auth_message(const godot::String &answer);
+	godot::Ref<GreetdResponse> answer_auth_message(const godot::Variant &answer);
 	godot::Ref<GreetdResponse> start_session(const godot::String &cmd);
 	godot::Ref<GreetdResponse> cancel_session();
 	godot::TypedArray<godot::Dictionary> get_wayland_sessions();

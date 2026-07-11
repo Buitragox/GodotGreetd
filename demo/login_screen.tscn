@@ -18,6 +18,7 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_7xvqn")
 metadata/_edit_lock_ = true
+metadata/_edit_horizontal_guides_ = [616.0, 528.0]
 
 [node name="AlLqk82Edit" type="Sprite2D" parent="." unique_id=887923588]
 position = Vector2(960, 540)
@@ -54,7 +55,7 @@ unique_name_in_owner = true
 layout_mode = 2
 text_overrun_behavior = 3
 
-[node name="Password" type="LineEdit" parent="VBoxContainer" unique_id=937236301]
+[node name="AuthAnswer" type="LineEdit" parent="VBoxContainer" unique_id=937236301]
 unique_name_in_owner = true
 layout_mode = 2
 placeholder_text = "password"
@@ -69,7 +70,7 @@ alignment = 1
 unique_name_in_owner = true
 layout_mode = 2
 theme = ExtResource("3_3u8nt")
-text = "Log In"
+text = "Log in"
 
 [node name="Log" type="RichTextLabel" parent="." unique_id=1163721506]
 unique_name_in_owner = true

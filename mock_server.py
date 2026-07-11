@@ -92,7 +92,7 @@ def create_response(request: dict[str, str], simulate_delay: bool) -> dict[str, 
         case {"type": "create_session"}:
             state = State.AWAITING_AUTH
             log.debug("state -> %s", state.name)
-            return create_auth_response("secret", "mocking:")
+            return create_auth_response("secret", "Password:")
         case {"type": "post_auth_message_response", "response": response} if (
             response not in VALID_PASSWORDS
         ):

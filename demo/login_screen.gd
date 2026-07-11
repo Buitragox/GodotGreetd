@@ -21,6 +21,7 @@ func _ready() -> void:
 	%Password.text_submitted.connect(_on_password_submitted)
 	%LogIn.pressed.connect(login)
 	%SessionSelect.item_selected.connect(_on_session_selected)
+	%Username.item_selected.connect(_on_user_selected)
 	%Shutdown.pressed.connect(_on_shutdown_pressed)
 	%Restart.pressed.connect(_on_restart_pressed)
 
@@ -29,15 +30,16 @@ func _ready() -> void:
 	get_tree().set_auto_accept_quit(false) # Handle quit manually
 
 
-## Get a list of users and select the last user that logged in.
+## Get the list of users and select the last user that logged in.
 func _init_users():
-	var last_user = config.get_value("General", "last_user", "")
-
+	var last_user: String = config.get_value("General", "last_user", "")
 	var users := greeter.get_users()
-	for user in users:
+	
+	for i in range(users.size()):
+		var user := users[i]
 		%Username.add_item(user)
 		if user == last_user:
-			%Username.select(-1)
+			%Username.select(i)
 
 
 ## Get a list of sessions and select the last used session.
@@ -58,6 +60,7 @@ func _init_sessions():
 func _on_session_selected(_index: int):
 	var session = %SessionSelect.text
 	config.set_value("General", "last_session", session)
+	
 
 
 ## Save the selected user as the last one.
@@ -69,20 +72,6 @@ func _on_user_selected(_index: int):
 ## When pressing "Enter" run the Login
 func _on_password_submitted(_password):
 	login()
-
-
-func _on_shutdown_pressed():
-	OS.execute("shutdown", ["now"])
-
-
-func _on_restart_pressed():
-	OS.execute("shutdown", ["-r", "now"])
-
-
-## Manually handle app closing.
-func _notification(what: int) -> void:
-	if what == NOTIFICATION_WM_CLOSE_REQUEST:
-		_quit()
 
 
 func login() -> void:
@@ -171,10 +160,15 @@ func _on_auth_complete(response: GreetdResponse) -> void:
 	_quit()
 
 
-## Save config and quit
-func _quit() -> void:
-	config.save(CONFIG_PATH)
-	get_tree().quit()
+func cancel_session() -> void:
+	var response := greeter.cancel_session()
+	if response is GreetdError:
+		_log_info(response.error_description)
+	elif response is GreetdAuthMessage:
+		_log_info("Unexpected: %s - %s" % [response.auth_message_type, response.auth_message])
+	else:
+		%AuthAnswer.call_deferred("grab_focus")
+		_log_info("Cancelled successfully")
 
 
 func _set_ui_enabled(enabled: bool) -> void:
@@ -188,12 +182,21 @@ func _log_info(text: String) -> void:
 	%Log.add_text(text + "\n")
 
 
-func cancel_session() -> void:
-	var response := greeter.cancel_session()
-	if response is GreetdError:
-		_log_info(response.error_description)
-	elif response is GreetdAuthMessage:
-		_log_info("Unexpected: %s - %s" % [response.auth_message_type, response.auth_message])
-	else:
-		%Password.call_deferred("grab_focus")
-		_log_info("Cancelled successfully")
+## Manually handle app closing.
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_CLOSE_REQUEST:
+		_quit()
+
+
+## Save config and quit
+func _quit() -> void:
+	config.save(CONFIG_PATH)
+	get_tree().quit()
+
+
+func _on_shutdown_pressed():
+	OS.execute("shutdown", ["now"])
+
+
+func _on_restart_pressed():
+	OS.execute("shutdown", ["-r", "now"])

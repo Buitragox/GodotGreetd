@@ -36,8 +36,20 @@ Ref<GreetdResponse> GreetdGreeter::create_session(const String &username) {
 	return send_greetd_request(request);
 }
 
-Ref<GreetdResponse> GreetdGreeter::answer_auth_message(const String &answer) {
-	json request = { { "type", "post_auth_message_response" }, { "response", answer.utf8().get_data() } };
+Ref<GreetdResponse> GreetdGreeter::answer_auth_message(const Variant &answer) {
+	json response;
+	if (answer.get_type() == Variant::NIL) {
+		response = nullptr;
+	} else if (answer.get_type() == Variant::STRING) {
+		String answer_string = answer;
+		response = answer_string.utf8().get_data();
+	} else {
+		String err_message = "Auth message response must be a String or null";
+		UtilityFunctions::printerr(err_message);
+		return memnew(GreetdError("internal_error", err_message));
+	}
+
+	json request = { { "type", "post_auth_message_response" }, { "response", response } };
 	return send_greetd_request(request);
 }
 
